@@ -17,7 +17,8 @@
    specific language governing permissions and limitations
    under the License.
    */
-  
+ require_once('library/System.php');
+ System::init();
   require_once("includes.php");
   
   function logout()
@@ -41,50 +42,20 @@
   function login($username, $password, $mail)
   {
       global $apiPath, $snoopy, $_SESSION;
-      $username = mysql_escape($username);
-      $password = mysql_escape(MD5($password));
+
       if ($username == "") return "Wrong password";
-      $res = System::query("SELECT username, password FROM " . System::getConfig('tbl_prefix') . 'users WHERE username=?', 's', $username);
-      if ($res->num_rows == 0) return createAccount($username, $password, $mail);
-      $res = System::query("SELECT username, password FROM " . System::getConfig('tbl_prefix') . 'users WHERE username=? AND active=true', 's', $username);
+      $res = System::query("SELECT username, password FROM " . System::getConfig('tbl_prefix') . 'users WHERE username=?', array($username));
+      if ($res->num_rows == 0) return createAccount($username, md5($password), $mail);
+      $res = System::query("SELECT username, password FROM " . System::getConfig('tbl_prefix') . 'users WHERE username=? AND active=true', array($username));
       if ($res->num_rows == 0) return "Account not yet activated";
-      $res = System::query("SELECT id, username, password FROM " . System::getConfig('tbl_prefix') . 'users WHERE username=? AND password=? AND active=true', 's', array($username, $password));
-      if ($res->num_rows == 1) {
-        $entry = $res->fetch_assoc();
-          $_SESSION['siduserid'] = $entry["id"];
-          $_SESSION['siduser'] = $entry["username"];
-          $_SESSION['sidip'] = $_SERVER["REMOTE_ADDR"];
-      } else return "Wrong password";
-      //~ else {
-          //~ $username = strtoupper(substr($username, 0, 1)) . substr($username, 1, strlen($username) - 1);
-          //~ 
-          //~ $request_vars = array('action' => 'login', 'lgname' => $username, 'lgpassword' => $password, 'format' => 'php');
-          //~ if (!$snoopy->submit($apiPath, $request_vars))
-              //~ die("Snoopy error: {$snoopy->error}");
-          //~ 
-          //~ // We're only really interested in the cookies
-          //~ $snoopy->setcookies();
-          //~ $array = unserialize($snoopy->results);
-          //~ 
-          //~ if ($array[login][result] == "NeedToken") {
-              //~ $request_vars = array('action' => 'login', 'lgname' => $username, 'lgpassword' => $password, 'lgtoken' => $array[login][token], 'format' => 'php');
-              //~ if (!$snoopy->submit($apiPath, $request_vars))
-                  //~ die("Snoopy error: {$snoopy->error}");
-              //~ 
-              //~ // We're only really interested in the cookies
-              //~ $snoopy->setcookies();
-              //~ $array = unserialize($snoopy->results);
-          //~ }
-          //~ 
-          //~ 
-          //~ if ($array[login][result] == "Success") {
-              //~ $_SESSION['siduser'] = mysql_escape($username);
-              //~ $_SESSION['wikisession'] = $snoopy->cookies;
-              //~ $_SESSION['sidip'] = $_SERVER["REMOTE_ADDR"];
-              //~ $result = true;
-          //~ }
-      //~ }
-      
+      $res = System::query("SELECT id, username, password FROM " . System::getConfig('tbl_prefix') . 'users WHERE username=? AND password=? AND active=true', array($username, md5($password)));
+      if ($res->num_rows == 0) {
+        return "Wrong password";
+      }
+      $entry = $res->fetch_assoc();
+      $_SESSION['siduserid'] = $entry['id'];
+      $_SESSION['siduser'] = $entry['username'];
+      $_SESSION['sidip'] = $_SERVER["REMOTE_ADDR"];
       
       // Try to get the users location...
       if ($_SESSION['siduser']) {
@@ -107,12 +78,12 @@
                   }
               }
               $query = "SELECT lat, lon,zoom FROM " . System::getConfig('tbl_prefix') . "regions WHERE category in (?" . str_repeat(', ?', count($categories) - 1) . ") order by zoom desc limit 1";
-              $res = System::query($query, str_repeat('s', count($categories)), $categories);
-              
+              $res = System::query($query, $categories);
               if ($res->num_rows == 1) {
-                  $_SESSION['deflat'] = mysql_result($res, 0, "lat");
-                  $_SESSION['deflon'] = mysql_result($res, 0, "lon");
-                  $_SESSION['defzoom'] = mysql_result($res, 0, "zoom");
+		$entry = $res->fetch_assoc();
+                  $_SESSION['deflat'] = $entry['lat'];
+                  $_SESSION['deflon'] = $entry['lon'];
+                  $_SESSION['defzoom'] = $entry['zoom'];
               }
           }
       }
@@ -121,7 +92,7 @@
   
   function createAccount($username, $password, $mail){
 	  if (!strstr($mail, '@piraten')) return "eMail-Addresse muss @piraten enthalten";
-	  $res = System::query("SELECT * FROM ".System::getConfig('tbl_prefix')."users WHERE username=?", 's', $username) OR dieDB();
+	  $res = System::query("SELECT id FROM ".System::getConfig('tbl_prefix')."users WHERE username=?", array($username)) OR dieDB();
 	  if ($res->num_rows > 0) return "Username already exists";
 	  $date = new DateTime();
 	  $hash = md5($date->getTimestamp().$username);
@@ -134,9 +105,9 @@
   }
   
   function activateAccount($hash, $username){
-	  $res = System::query("SELECT * FROM ".System::getConfig('tbl_prefix')."users WHERE username=? AND hash=?", 'ss', array($username, $hash)) OR dieDB();
+	  $res = System::query("SELECT id FROM ".System::getConfig('tbl_prefix')."users WHERE username=? AND hash=?", array($username, $hash)) OR dieDB();
 	  if ($res->num_rows != 1) return;
-	  System::query("UPDATE ".System::getConfig('tbl_prefix')."users set active=true WHERE username=? AND hash=?", 'ss', array($username, $hash)) OR dieDB();
+	  System::query("UPDATE ".System::getConfig('tbl_prefix')."users set active=true WHERE username=? AND hash=?", array($username, $hash)) OR dieDB();
 	  header("Location: ./?message=Account%20activated");
   }
 	  

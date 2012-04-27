@@ -18,6 +18,8 @@
        under the License.
 */
 ob_start("ob_gzhandler");
+require_once("library/System.php");
+System::init();
 require("includes.php");
 
 if (($loginok==0) and !$allow_view_public)
@@ -74,71 +76,51 @@ foreach($options as $key=>$value) {
 		$nIconS->appendChild($dom->createElement('Icon'))->appendChild($dom->createElement('href', "./images/markers/$key.png"));
 	}
 }
-
+$args = array();
 $filterstr = "";
 if ($filter) {
-  $filterstr = " AND type = '".mysql_escape($filter)."'";
+  $filterstr = " AND type = ?";
+  $args[] = $filter;
 }
-$bbox = mysql_escape($_GET['bbox']);
+$bbox = $_GET['bbox'];
 if ($bbox) {
-	list($bbe, $bbn, $bbw, $bbs) = split(",", $bbox);
-	$filterstr .= " AND (f.lon >= $bbe) AND (f.lon <= $bbw) AND (f.lat >= $bbn) AND (f.lat <= $bbs)";
+	$args = array_merge($args, split(",", $bbox));
+	$filterstr .= " AND (f.lon >= ?) AND (f.lon <= ?) AND (f.lat >= ?) AND (f.lat <= ?)";
 }
 
 
 $query = "SELECT p.id, f.lon, f.lat, f.type, f.user, f.timestamp, f.comment, f.city, f.street, f.image "
-      . " FROM ".$tbl_prefix."felder f JOIN ".$tbl_prefix."plakat p on p.actual_id = f.id"
+      . " FROM ".System::getConfig('tbl_prefix')."felder f JOIN ".System::getConfig('tbl_prefix')."plakat p on p.actual_id = f.id"
       . " WHERE p.del != true".$filterstr;
 
-$res = mysql_query($query) OR dieDB();
-$num = mysql_num_rows($res);
+$res = System::query($query, $args);
 
-for ($i=0;$i<$num;$i++) {
+while ($row = $res->fetch_assoc()) {
 	$id  = mysql_result($res, $i, "id");
 	
-	$lon = mysql_result($res, $i, "lon");
+	$lon = $row["lon"];
 	$arr = preg_split("/\./", $lon);
 	$ar2 = str_split($arr[1],6);
 	$lon = $arr[0].".".$ar2[0];
 	
-	$lat = mysql_result($res, $i, "lat");
+	$lat = $row["lat"];
 	$arr = preg_split("/\./", $lat);
 	$ar2 = str_split($arr[1],6);
 	$lat = $arr[0].".".$ar2[0];
-	
-	$type= mysql_result($res, $i, "type");
-	
-	$user= mysql_result($res, $i, "user");
-	
-	$time= mysql_result($res, $i, "timestamp");
-	
-	$comment = mysql_result($res, $i, "comment");
-	
-	if ($comment == null)
-		$comment = "";
-	$city = mysql_result($res, $i, "city");
-	if ($city == null)
-		$city = "";
-	$street = mysql_result($res, $i, "street");
-	if ($street == null)
-		$street = "";
-	$image   = mysql_result($res, $i, "image");
-	if ($image == "")
-		$image = null;
 	
 	$place = $nodeDoc->appendChild($dom->createElement('Placemark'));
 	$place->appendChild($dom->createElement('name', $id));
 	$place->appendChild($dom->createElement('description'))->appendChild(
 		$dom->createCDATASection(json_encode(array(
-			'id'=>$id,
-			't'=>$type, 
-			'tb'=>$options[$type],
-			'i'=>htmlspecialchars($image),
-			'c'=>htmlspecialchars($comment),
-			'ci'=>htmlspecialchars($city),
-			's'=>htmlspecialchars($street),
-			'u'=>htmlspecialchars($user),
-			'd'=>date('d.m.y H:i', strtotime($time))
+			'id'=>$row['id'],
+			't'=>$row['type'], 
+			'tb'=>$options[$row['type']],
+			'i'=>htmlspecialchars(($row['image'] == '' ? null : $row['image'])),
+			'c'=>htmlspecialchars((string) $row['comment']),
+			'ci'=>htmlspecialchars((string) $row['city']),
+			's'=>htmlspecialchars((string) $row['street']),
+			'u'=>htmlspecialchars($row['user']),
+			'd'=>date('d.m.y H:i', strtotime($row['timestamp']))
 		))));
 	if (isset($options[$type]))
 		$place->appendChild($dom->createElement('styleUrl', '#'.$styles[$type]));

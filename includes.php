@@ -18,7 +18,6 @@
        under the License.
 */
 
-include "Snoopy.class.php";
 include "settings.php";
 
 function get_inner_html( $node ) { 
@@ -57,14 +56,6 @@ $options = array("default"=>"",
 
 $image_upload_typ = 'plakat_ok';
 
-
-$db = mysql_connect($mysql_server, $mysql_user, $mysql_password);
-mysql_selectdb($mysql_database);
-mysql_query("SET character_set_connection = utf8");
-mysql_query("SET character_set_results = utf8");
-mysql_query("SET character_set_client = utf8");
-setlocale(LC_ALL, 'de_DE.UTF-8');
-
 if ($_SESSION['siduser'] || $_SESSION['sidip']) {
 	// Check if the session is still valid.
 	if ($_SESSION['wikisession']) {
@@ -75,7 +66,7 @@ if ($_SESSION['siduser'] || $_SESSION['sidip']) {
 			die("Snoopy error: {$snoopy->error}");
 		$array = unserialize($snoopy->results);
 
-		if ($_SESSION['siduser'] == $array[query][userinfo][name] && $_SESSION['sidip']==$_SERVER["REMOTE_ADDR"])
+		if ($_SESSION['siduser'] == $array['query']['userinfo']['name'] && $_SESSION['sidip']==$_SERVER["REMOTE_ADDR"])
 			$loginok=1;
 		else
 		{
@@ -131,11 +122,7 @@ function get_typ($typ) {
 }
 
 function map_add($lon, $lat, $typ) {
-	global $tbl_prefix, $_SESSION;
-	
-	$lon = mysql_escape($lon);
-	$lat = mysql_escape($lat);
-	$typ = mysql_escape($typ);
+	global $_SESSION;
 	
 	$src = new DOMDocument('1.0', 'utf-8');
 	$src->formatOutput = true;
@@ -143,38 +130,34 @@ function map_add($lon, $lat, $typ) {
 	$src->load("http://nominatim.openstreetmap.org/reverse?format=xml&zoom=18&addressdetails=1&lon=".$lon."&lat=".$lat);
 	$city = get_inner_html($src->getElementsByTagName('city')->item(0));
 	$street = get_inner_html($src->getElementsByTagName('road')->item(0));
-	$city = mysql_escape($city);
-	$street = mysql_escape($street);
 	
 	if ($typ != '')
-		$res = mysql_query("INSERT INTO ".$tbl_prefix."felder (lon,lat,user,type,city,street) VALUES ('".$lon."','".$lat."','".$_SESSION['siduser']."','".$typ."','".$city."','".$street."');") OR dieDB();
+	  $felder = System::query("INSERT INTO ".System::getConfig('tbl_prefix')."felder (lon,lat,user,type,city,street) VALUES (?, ?, ?, ?, ?, ?)", 
+                                  array($lon, $lat, $_SESSION['siduser'], $typ, $city, $street)) OR dieDB();
 	else
-		$res = mysql_query("INSERT INTO ".$tbl_prefix."felder (lon,lat,user,city,street) VALUES ('".$lon."','".$lat."','".$_SESSION['siduser']."','".$city."','".$street."');") OR dieDB();
+	  $felder = System::query("INSERT INTO ".System::getConfig('tbl_prefix')."felder (lon,lat,user,city,street) VALUES (?, ?, ?, ?, ?)",
+                                  array($lon, $lat, $_SESSION['siduser'], $city, $street)) OR dieDB();
 	
-	$id = mysql_insert_id();
-	$res = mysql_query("INSERT INTO ".$tbl_prefix."plakat (actual_id, del) VALUES('".$id."',false)") OR dieDB();
-	$pid = mysql_insert_id();
-	mysql_query("UPDATE ".$tbl_prefix."felder SET plakat_id = $pid WHERE id = $id") or dieDB();
-	$res = mysql_query("INSERT INTO ".$tbl_prefix."log (plakat_id, user, subject) VALUES('".$pid."','".$_SESSION['siduser']."','add')") OR dieDB();
-	return $pid;
+	$plakat = System::query("INSERT INTO ".System::getConfig('tbl_prefix')."plakat (actual_id, del) VALUES(?, false)", array($felder)) OR dieDB();
+	System::query("UPDATE ".System::getConfig('tbl_prefix').'felder SET plakat_id = ? WHERE id = ?', array($plakat, $felder)) or dieDB();
+	$res = System::query("INSERT INTO ".System::getConfig('tbl_prefix')."log (plakat_id, user, subject) VALUES(?, ?, 'add')", array($plakat, $_SESSION['siduser'])) OR dieDB();
+	return $plakat;
 }
 
 function map_del($id) {
-	global $tbl_prefix, $_SESSION;
+	global $_SESSION;
 	
-	$id = mysql_escape($id);
+	$res = System::query("UPDATE ".System::getConfig('tbl_prefix')."plakat SET del = true where id = ?", $id) OR dieDB();
 	
-	$res = mysql_query("UPDATE ".$tbl_prefix."plakat SET del = true where id = $id") OR dieDB();
-	
-	$res = mysql_query("INSERT INTO ".$tbl_prefix."log (plakat_id, user, subject) VALUES('".$id."','".$_SESSION['siduser']."','del')") OR dieDB();
+	$res = System::query("INSERT INTO ".System::getConfig('tbl_prefix')."log (plakat_id, user, subject) VALUES(?, ?, 'del')", array($id, $_SESSION['siduser'])) OR dieDB();
 	return;
 }
 
 function map_change($id, $type, $comment, $city, $street, $imageurl) {
-	global $tbl_prefix, $_SESSION, $options;
+	global $_SESSION, $options;
 	
 	$id = mysql_escape($id);
-	$query = "INSERT INTO ".$tbl_prefix."felder (plakat_id, lon, lat, user, type, comment, city, street, image) "
+	$query = "INSERT INTO ".System::getConfig('tbl_prefix')."felder (plakat_id, lon, lat, user, type, comment, city, street, image) "
                . "SELECT plakat_id, lon, lat, '".$_SESSION['siduser']."' as user, ";
 	if(isset($options[$type])) {
 		$type = mysql_escape($type);
@@ -197,14 +180,14 @@ function map_change($id, $type, $comment, $city, $street, $imageurl) {
 		$query .= "'$imageurl' as image ";
 	} else $query .= "image ";
 
-	$query .= " FROM ".$tbl_prefix."felder WHERE id in (SELECT actual_id from ".$tbl_prefix."plakat where id = $id)";
+	$query .= " FROM ".System::getConfig('tbl_prefix')."felder WHERE id in (SELECT actual_id from ".System::getConfig('tbl_prefix')."plakat where id = $id)";
 
-	$res = mysql_query($query) OR dieDB();
+	$res = System::query($query);
 	$newid = mysql_insert_id();
 
-	$res = mysql_query("INSERT INTO ".$tbl_prefix."log (plakat_id, user, subject, what) VALUES('".$id."','".$_SESSION['siduser']."','change', 'Type: ".$type."')") OR dieDB();
+	$res = System::query("INSERT INTO ".System::getConfig('tbl_prefix')."log (plakat_id, user, subject, what) VALUES(?, ?, 'change', ?)", array($id, $_SESSION['siduser'], 'Type: ' . $type));
 
-	mysql_query("UPDATE ".$tbl_prefix."plakat SET actual_id = $newid where id = $id");
+	System::query("UPDATE ".System::getConfig('tbl_prefix')."plakat SET actual_id = ? where id = ?", array($newid, $id));
 	
 	return;
 }

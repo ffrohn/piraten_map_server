@@ -5,44 +5,38 @@
 class System
 {
   /**
-   * @var System
+   * @var bool
    */
-  private static $instance = null;
+  private static $initiated = false;
 
-  private $configuration = array();
+  /**
+   * @var array
+   */
+  private static $configuration = array();
   
   /**
    * @var mysqli
    */
-  private $db = null;
+  private static $db = null;
 
-  public static function getInstance()
-  {
-    if (!$instance) {
-      self::$instance = new System();
-    }
-
-    return self::$instance;
-  }
+  private static $last_request = null;
 
   public static function init()
   {
-    return self::getInstance();
-  }
-
-  public static function __callStatic($method, $arguments)
-  {
-    if (!is_callable(array(self::getInstance(), $method))) {
-      throw new Exception('Method ' . $method . ' does not exist.');
+    if (self::$initiated) {
+      return;
     }
 
-    return call_user_func(array(self::getInstance(), $method), $arguments);
+    spl_autoload_register('System::autoload');
+    setlocale(LC_ALL, 'de_DE.UTF-8');
+    self::readConfiguration();
+    self::initDatabase();
+    self::$initiated = true;
   }
 
   public static function autoload($classname)
   {
-    $path = dirname(__FILE__);
-    $path .= str_replace('_', '/', $classname) . '.php';
+    $path = dirname(__FILE__) . '/' . str_replace('_', '/', $classname) . '.php';
     if (!file_exists($path)) {
       throw new Exception('Class ' . $classname . ' not Found');
     }
@@ -52,43 +46,105 @@ class System
 
   private function __construct()
   {
-    spl_autoload_register('System::autoload');
-    $this->readConfiguration();
-    $this->initDatabase();
   }
 
-  private function readConfiguration()
+  private static function readConfiguration()
   {
     include 'settings.php';
 
-    $this->configuration = get_defined_vars();
+    self::$configuration = get_defined_vars();
   }
 
-  private function initDatabase()
+  private static function initDatabase()
   {
-    $this->db = new mysqli($this->getConfig('mysql_server'), $this->getConfig('mysql_user'), $this->getConfig('mysql_password'), $this->getConfig('mysql_database'));
+    self::$db = new mysqli(self::getConfig('mysql_server'), self::getConfig('mysql_user'), self::getConfig('mysql_password'), self::getConfig('mysql_database'));
+    self::$db->query('SET NAMES utf8');
   }
   
-  public function getConfig($varname)
+  public static function getConfig($varname)
   {
-    return $this->configuration[$varname];
+    return self::$configuration[$varname];
   }
 
-  public function query($query, $types = '', $arguments = null)
+  /**
+   * Executes a query and delivers the statement object
+   * 
+   * @param string $query
+   * @param mixed $arguments
+   * @return mysqli_stmt
+   */
+  public static function query($query, $arguments = array())
   {
-    $statement = $this->db->prepare($query);
-    if ($sequence && $arguments) {
-      call_user_func_array(array($statement, 'bind_param'), array_merge(array($types), (array) $arguments));
+    if (stripos($query, 'insert') === 0) {
+      $type = 'insert';
     }
-    if (!$statement->execute()) {
-      throw new Exception('Query failed');
+    $query = self::prepare_query($query, (array) $arguments);
+
+    self::$last_request = $query;
+
+    $result = self::$db->query($query);
+
+    if (!$result) {
+      throw new Exception('Query Failed');
+    } else if ($result === true) {
+      if ($type == 'insert') {
+        return self::$db->insert_id;
+      }
+      return self::$db->affected_rows;
     }
 
-    return $statement->get_result();
+    return $result;
   }
 
-  public function getDb()
+  public static function getDb()
   {
-    return $this->db;
+    return self::$db;
+  }
+
+  private static function prepare_query($query,array $data_arr)
+  {
+    preg_match_all("/[\?]/",$query,$matches,PREG_OFFSET_CAPTURE);
+
+    if (sizeof($matches[0])!=sizeof($data_arr))
+    {
+      throw new Exception('Query arguments missmatch');
+    }
+
+    $offset=0;
+    foreach (array_values($data_arr) as $index => $value) {
+      $pos  = $matches[0][$index][1];
+
+      if (is_array($value)) {
+        $replace="";
+        if (sizeof($value)>0) {
+          foreach ($value as $data) {
+            $replace.=self::escape($data).",";
+          }
+          $replace=substr($replace,0,-1);
+        }
+      } else {
+        $replace=self::escape($value);
+      }
+
+      $query   = substr_replace($query,$replace,$pos + $offset, 1);
+      $offset += strlen($replace)-1;
+    }
+    return $query;
+  }
+
+  private static function escape($value)
+  {
+    if (is_string($value)) {
+      $replace="'". self::$db->real_escape_string($value)."'";
+    }
+    elseif (is_int($value) || is_float($value))
+      $replace=$value;
+    elseif (is_bool($value))
+      $replace=(int) $value;
+    elseif (is_null($value))
+      $replace="NULL";
+    else
+      $replace=self::$db->real_escape_string((string) $value);
+    return $replace;
   }
 }
