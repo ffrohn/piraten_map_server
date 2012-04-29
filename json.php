@@ -18,9 +18,11 @@
        under the License.
 */
 ob_start("ob_gzhandler");
+require("library/System.php");
+System::init();
 require("includes.php");
 
-if (($loginok==0) and !$allow_view_public)
+if (($loginok==0) and !System::getConfig('allow_view_public'))
 	exit();
 
 if ($loginok!=0) 
@@ -44,11 +46,11 @@ if ($loginok!=0)
 }
 
 $query = "SELECT p.id, f.lon, f.lat, f.type, f.user, f.timestamp, f.comment, f.city, f.street, f.image "
-      . " FROM ".$tbl_prefix."felder f JOIN ".$tbl_prefix."plakat p on p.actual_id = f.id"
+      . " FROM ".System::getConfig('tbl_prefix')."felder f JOIN ".System::getConfig('tbl_prefix')."plakat p on p.actual_id = f.id"
       . " WHERE p.del != true";
 
-$rs = mysql_query($query) OR dieDB();
-while($obj = mysql_fetch_object($rs))
+$rs = System::query($query);
+while($obj = $rs->fetch_object())
 {
 	$obj->user    = htmlspecialchars($obj->user);
 	$obj->comment = htmlspecialchars($obj->comment);

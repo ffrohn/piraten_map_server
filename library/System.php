@@ -19,7 +19,7 @@ class System
    */
   private static $db = null;
 
-  private static $last_request = null;
+  private static $lastRequest = null;
 
   public static function init()
   {
@@ -78,9 +78,9 @@ class System
     if (stripos($query, 'insert') === 0) {
       $type = 'insert';
     }
-    $query = self::prepare_query($query, (array) $arguments);
+    $query = self::prepareQuery($query, (array) $arguments);
 
-    self::$last_request = $query;
+    self::$lastRequest = $query;
 
     $result = self::$db->query($query);
 
@@ -96,12 +96,17 @@ class System
     return $result;
   }
 
+  public static function getLastRequest()
+  {
+    return self::$lastRequest;
+  }
+
   public static function getDb()
   {
     return self::$db;
   }
 
-  private static function prepare_query($query,array $data_arr)
+  private static function prepareQuery($query,array $data_arr)
   {
     preg_match_all("/[\?]/",$query,$matches,PREG_OFFSET_CAPTURE);
 

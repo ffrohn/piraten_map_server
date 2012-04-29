@@ -18,6 +18,8 @@
        under the License.
 */
   ob_start("ob_gzhandler");
+  require_once('library/System.php');
+  System::init();
   require_once(dirname(__FILE__). "/includes.php");
   require_once(dirname(__FILE__). '/login.php');
   // first include pb_message
@@ -96,10 +98,10 @@
   }
 
   $query = "SELECT p.id, f.lon, f.lat, f.type, f.user, f.timestamp, f.comment, f.image "
-	. " FROM ".$tbl_prefix."felder f JOIN ".$tbl_prefix."plakat p on p.actual_id = f.id"
+	. " FROM ".System::getConfig('tbl_prefix')."felder f JOIN ".System::getConfig('tbl_prefix')."plakat p on p.actual_id = f.id"
 	. " WHERE p.del != true".$filterstr;
 
-  $res = mysql_query($query) OR dieDB();
+  $res = System::query($query);
 
   while($obj = mysql_fetch_object($res))
   {
@@ -114,4 +116,4 @@
       $plak->set_ImageUrl($obj->image);
   }
   die($response->SerializeToString()); // use die to prevent any other data being send
-?> 
+?>

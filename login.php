@@ -43,18 +43,18 @@
   {
       global $apiPath, $snoopy, $_SESSION;
 
-      if ($username == "") return "Wrong password";
-      $res = System::query("SELECT username, password FROM " . System::getConfig('tbl_prefix') . 'users WHERE username=?', array($username));
-      if ($res->num_rows == 0) return createAccount($username, md5($password), $mail);
-      $res = System::query("SELECT username, password FROM " . System::getConfig('tbl_prefix') . 'users WHERE username=? AND active=true', array($username));
-      if ($res->num_rows == 0) return "Account not yet activated";
-      $res = System::query("SELECT id, username, password FROM " . System::getConfig('tbl_prefix') . 'users WHERE username=? AND password=? AND active=true', array($username, md5($password)));
-      if ($res->num_rows == 0) {
-        return "Wrong password";
+      try {
+        $search = Data_User::find('username', $username);
+        if ($search->num_rows == 0) {
+	  return createAccount($username, $password, $mail);
+	}
+
+        $user = Data_User::login($username, $password);
+      } catch (Exception $e) {
+        return $e->getMessage();
       }
-      $entry = $res->fetch_assoc();
-      $_SESSION['siduserid'] = $entry['id'];
-      $_SESSION['siduser'] = $entry['username'];
+      $_SESSION['siduserid'] = $user->getId();
+      $_SESSION['siduser'] = $user->getUsername();
       $_SESSION['sidip'] = $_SERVER["REMOTE_ADDR"];
       
       // Try to get the users location...
@@ -92,23 +92,24 @@
   
   function createAccount($username, $password, $mail){
 	  if (!strstr($mail, '@piraten')) return "eMail-Addresse muss @piraten enthalten";
-	  $res = System::query("SELECT id FROM ".System::getConfig('tbl_prefix')."users WHERE username=?", array($username)) OR dieDB();
+	  $res = Data_User::find('username', $username);
 	  if ($res->num_rows > 0) return "Username already exists";
-	  $date = new DateTime();
-	  $hash = md5($date->getTimestamp().$username);
-	  System::query("INSERT INTO ".System::getConfig('tbl_prefix') . 'users (username, password, hash) VALUES(?, ?, ?)', 'sss', array($username, $password, $hash)) OR dieDB();
+
+	  $user = new Data_User();
+	  $user->setUsername($username);
+	  $user->setPassword($password);
+	  $user->save();
 	  $header = 'From: noreply@piratenpartei-aachen.de';
 	  if (mail($mail, "Piraten Karte Account", "Hallo, um die Registrierung auf http://pk.piratenpartei-nrw.de abzuschliessen, klicke bitte auf den Link unten. Bei Fragen bitte zuerst im Wiki schauen: http://wiki.piratenpartei.de/Plakatekarte_NRW. \r\n".
-			$_SERVER["SERVER_NAME"].$_SERVER['PHP_SELF']."?action=activate&hash=".$hash."&username=".$username, $header))
+			$_SERVER["SERVER_NAME"].$_SERVER['PHP_SELF']."?action=activate&hash=".$user->getHash()."&username=".$user->getUsername(), $header))
 		return "Account created";
 	  else return "Delivering mail failed";
   }
   
   function activateAccount($hash, $username){
-	  $res = System::query("SELECT id FROM ".System::getConfig('tbl_prefix')."users WHERE username=? AND hash=?", array($username, $hash)) OR dieDB();
-	  if ($res->num_rows != 1) return;
-	  System::query("UPDATE ".System::getConfig('tbl_prefix')."users set active=true WHERE username=? AND hash=?", array($username, $hash)) OR dieDB();
-	  header("Location: ./?message=Account%20activated");
+	  if (Data_User::activate($username, $hash)) {
+	    header("Location: ./?message=Account%20activated");
+	  }
   }
 	  
   

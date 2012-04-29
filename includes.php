@@ -32,8 +32,8 @@ function get_inner_html( $node ) {
 
 $snoopy = new Snoopy;
 
-if ($use_ssl) {
-  $snoopy->curl_path=$curl_path;
+if (System::getConfig('use_ssl')) {
+  $snoopy->curl_path=System::getConfig('curl_path');
   $wikiPath = "https://wiki.piratenpartei.de";
 } else {
   $snoopy->curl_path=false;
@@ -88,14 +88,6 @@ if ($_SESSION['siduser'] || $_SESSION['sidip']) {
        }
 }
 
-function dieDB() {
-    global $debug;
-    if ($debug)
-      DIE(mysql_error());
-    else
-      DIE("Error!");
-}
-
 function mysql_escape($value) {
 	if (get_magic_quotes_gpc())
 		$value = stripslashes($value);
@@ -133,23 +125,23 @@ function map_add($lon, $lat, $typ) {
 	
 	if ($typ != '')
 	  $felder = System::query("INSERT INTO ".System::getConfig('tbl_prefix')."felder (lon,lat,user,type,city,street) VALUES (?, ?, ?, ?, ?, ?)", 
-                                  array($lon, $lat, $_SESSION['siduser'], $typ, $city, $street)) OR dieDB();
+                                  array($lon, $lat, $_SESSION['siduser'], $typ, $city, $street));
 	else
 	  $felder = System::query("INSERT INTO ".System::getConfig('tbl_prefix')."felder (lon,lat,user,city,street) VALUES (?, ?, ?, ?, ?)",
-                                  array($lon, $lat, $_SESSION['siduser'], $city, $street)) OR dieDB();
+                                  array($lon, $lat, $_SESSION['siduser'], $city, $street));
 	
-	$plakat = System::query("INSERT INTO ".System::getConfig('tbl_prefix')."plakat (actual_id, del) VALUES(?, false)", array($felder)) OR dieDB();
-	System::query("UPDATE ".System::getConfig('tbl_prefix').'felder SET plakat_id = ? WHERE id = ?', array($plakat, $felder)) or dieDB();
-	$res = System::query("INSERT INTO ".System::getConfig('tbl_prefix')."log (plakat_id, user, subject) VALUES(?, ?, 'add')", array($plakat, $_SESSION['siduser'])) OR dieDB();
+	$plakat = System::query("INSERT INTO ".System::getConfig('tbl_prefix')."plakat (actual_id, del) VALUES(?, false)", array($felder));
+	System::query("UPDATE ".System::getConfig('tbl_prefix').'felder SET plakat_id = ? WHERE id = ?', array($plakat, $felder));
+	$res = System::query("INSERT INTO ".System::getConfig('tbl_prefix')."log (plakat_id, user, subject) VALUES(?, ?, 'add')", array($plakat, $_SESSION['siduser']));
 	return $plakat;
 }
 
 function map_del($id) {
 	global $_SESSION;
 	
-	$res = System::query("UPDATE ".System::getConfig('tbl_prefix')."plakat SET del = true where id = ?", $id) OR dieDB();
+	$res = System::query("UPDATE ".System::getConfig('tbl_prefix')."plakat SET del = true where id = ?", $id);
 	
-	$res = System::query("INSERT INTO ".System::getConfig('tbl_prefix')."log (plakat_id, user, subject) VALUES(?, ?, 'del')", array($id, $_SESSION['siduser'])) OR dieDB();
+	$res = System::query("INSERT INTO ".System::getConfig('tbl_prefix')."log (plakat_id, user, subject) VALUES(?, ?, 'del')", array($id, $_SESSION['siduser']));
 	return;
 }
 

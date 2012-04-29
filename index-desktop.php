@@ -62,19 +62,19 @@ if ($lat)
 else if ($_SESSION['deflat'])
 	echo "var lat = ".json_encode($_SESSION['deflat']).";";
 else
-	echo "var lat = 53.37;";
+	echo "var lat = 51.17;";
 if ($lon)
 	echo "var lon = ".json_encode($lon).";";
 else if ($_SESSION['deflon'])
 	echo "var lon = ".json_encode($_SESSION['deflon']).";";
 else
-	echo "var lon = 10.39;";
+	echo "var lon = 6.95;";
 if ($zoom)
 	echo "var zoom = ".json_encode($zoom).";";
 else if ($_SESSION['defzoom'])
 	echo "var zoom = ".json_encode($_SESSION['defzoom']).";";
 else
-	echo "var zoom = 6;";
+	echo "var zoom = 8;";
 ?> 
 		
 		var map;
@@ -303,9 +303,9 @@ else
           <h3><a href="#">Plakat Karte</a></h3>
           <ul>
 		<?php if ($loginok != 0) { ?>
-			<form id="formLogout" action="<?php echo $url?>login.php?action=logout" method="post"></form>
+			<form id="formLogout" action="<?php echo System::getConfig('url');?>login.php?action=logout" method="post"></form>
 			<li><a href="#" onclick="javascript:document.forms['formLogout'].submit()">Abmelden</a></li>
-			<li><a href="#" onclick="javascript:showModalId('uploadimg');">Bild hochladen</a></li>
+			<!--li><a href="#" onclick="javascript:showModalId('uploadimg');">Bild hochladen</a></li-->
 		<?php } else { ?>
 			<li><a href="#" onclick="javascript:showModalId('loginform');">Anmelden</a></li>		
 		<?php } ?>
@@ -323,7 +323,7 @@ else
 			<a href="#" class="close" onclick="javascript:closeModalDlg(false);">&times;</a>
           </div>
           <div class="modal-body">
-			<form id="formlogin" action="<?php echo $url?>login.php" method="post">
+			<form id="formlogin" action="<?php echo System::getConfig('url');?>login.php" method="post">
 
 				<div class="clearfix">
 					<label for="username">Benutzer</label>
@@ -338,10 +338,17 @@ else
 						<input type="password" size="30" class="xlarge" name="password" id="password" />
 					</div>
 				</div>
+				
+				<div class="clearfix">
+					<label for="mail">Mail</label>
+					<div class="input">
+						<input type="text" size="30" class="xlarge" name="mail" id="mail" value="Piraten-Adresse zur Registrierung eingeben"/>
+					</div>
+				</div>
 			</form>
           </div>
           <div class="modal-footer">
-			<a href="#" class="btn primary" onclick="javascript:document.forms['formlogin'].submit();">Anmelden</a>
+			<a href="#" class="btn primary" onclick="javascript:document.forms['formlogin'].submit();">Anmelden/Account erstellen</a>
 			<a href="#" class="btn secondary" onclick="javascript:closeModalDlg(false);">Abbrechen</a>
           </div>
         </div>
@@ -381,19 +388,25 @@ else
 	<?php
 	}
 	?>
-    <?php if ($show_last_x_changes > 0) {?>
+    <?php if (System::getConfig('show_last_x_changes') > 0) {?>
 	<div style="position:absolute; top:50px; bottom:30px; width:150px; right:0px;" id="log" >
 		<?php if ($loginok) {
-			$res = mysql_query("SELECT plakat_id as id,user,timestamp,subject,what FROM ".$tbl_prefix."log ORDER BY timestamp DESC LIMIT ".$show_last_x_changes) OR dieDB();
+			$res = System::query("SELECT plakat_id as id,user,timestamp,subject,what FROM ".System::getConfig('tbl_prefix')."log ORDER BY timestamp DESC LIMIT ?", 'd', System::getConfig('show_last_x_changes'));
 			$num = mysql_num_rows($res);
 
-			for ($i=0;$i<$num;$i++)
+			while ($row = $res->fetch_assoc())
 			{
-				echo mysql_result($res, $i, "timestamp")." (".mysql_result($res, $i, "user")."):<br>";
-				if (mysql_result($res, $i, "subject")=='add') echo "Neues Plakat: ".mysql_result($res, $i, "id");
-				if (mysql_result($res, $i, "subject")=='del') echo "Plakat ".mysql_result($res, $i, "id")." gelöscht.";
-				if (mysql_result($res, $i, "subject")=='change') {
-					echo "Plakat ".mysql_result($res, $i, "id")." geändert: ".mysql_result($res, $i, "what");
+				echo $row["timestamp"] . " (". $row["user"] . "):<br>";
+				switch ($row["subject"])
+				{
+				  case 'add':
+				    echo "Neues Plakat: ".$row["id"];
+				    break;
+				  case 'del':
+				    echo "Plakat ".$row["id"]." gelöscht.";
+				    break;
+				  case 'change':
+				    echo "Plakat ".$row["id"]." geändert: ".$row["what"];
 				}
 				
 				echo "<br>";
@@ -402,7 +415,7 @@ else
 	</div>
 	<?php } 
 	$mapmarginright = 0;
-	if ($show_last_x_changes > 0)
+	if (System::getConfig('show_last_x_changes') > 0)
 		$mapmarginright = 150;
 	$mapmargintop = 40;
 	if ($_GET['message'])
@@ -419,8 +432,10 @@ else
           <div class="modal-body">
 			<ul class="unstyled">
 			  <?php if ($loginok==0) { ?>
-				<li>Plakate werden erst nachdem Login editierbar.</li>
-				<li>Lokaler oder Wiki Login möglich!</li>
+				<li>Anmelden: Zum Anmelden muss eine Email-Adresse mit "...@piraten..." angegeben werden. Dahin kommen dann die Login-Daten.</li>
+				<li>Plakate werden erst nach dem Login editierbar.</li>
+				<li>Du bist noch nicht angemeldet</li>
+				<li>Bei Fragen bitte auf https://wiki.piratenpartei.de/Plakatkarte_NRW schauen. Notfalls Mail an pk@piraten-aachen.de.</li>
 			  <? } else {	?>
 				<li>STRG+Mausklick: neuer Marker</li>
 			  <?php } ?>
