@@ -1,17 +1,17 @@
 <?php
 class Data_User extends Data_Abstract
 {
-  private $id;
+  protected $id;
 
-  private $username;
+  protected $username;
 
-  private $password;
+  protected $password;
 
   //private $email;
 
-  private $active = 0;
+  protected $active = 0;
 
-  private $hash;
+  protected $hash;
 
   public function __construct()
   {
@@ -154,20 +154,16 @@ class Data_User extends Data_Abstract
       return false;
     }
     if ($this->getId()) {
-      $setvars = array();
-      $setvals = array();
-      foreach ($this->getModifications() as $variable) {
-        $setvars[] = $variable . '=?';
-	$setvals[] = $this->$variable;
-      }
+      $setvals = $this->getModifications();
+      $setvars = array_keys($setvals);
 
       if (empty($setvars)) {
         return 0;
       }
-
+      
       $setvals[] = $this->getId();
 
-      return System::query('UPDATE ' . System::getConfig('tbl_prefix') . 'users SET ' . implode(', ', $setvars) . ' WHERE id=?', $setvals);
+      return System::query('UPDATE ' . System::getConfig('tbl_prefix') . 'users SET ' . implode(', ', $se) . ' WHERE id=?', $setvals);
     }
 
     $this->setId(System::query('INSERT INTO ' . System::getConfig('tbl_prefix') . 'users (username, password, active, hash) VALUES (?, ?, ?, ?, ?)',

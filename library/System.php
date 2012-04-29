@@ -38,7 +38,7 @@ class System
   {
     $path = dirname(__FILE__) . '/' . str_replace('_', '/', $classname) . '.php';
     if (!file_exists($path)) {
-      throw new Exception('Class ' . $classname . ' not Found');
+      throw new Exception('Class ' . $classname . ' not Found in ' . $path);
     }
 
     include_once($path);
@@ -75,8 +75,11 @@ class System
    */
   public static function query($query, $arguments = array())
   {
+    $type = '';
     if (stripos($query, 'insert') === 0) {
       $type = 'insert';
+    } else if (stripos($query, 'update') === 0 || stripos($query, 'delete') === 0) {
+      $type = 'modify';
     }
     $query = self::prepareQuery($query, (array) $arguments);
 
@@ -85,12 +88,13 @@ class System
     $result = self::$db->query($query);
 
     if (!$result) {
-      throw new Exception('Query Failed');
+      throw new Exception(self::$db->error);
     } else if ($result === true) {
       if ($type == 'insert') {
         return self::$db->insert_id;
+      } else if ($type == 'modify') {
+        return self::$db->affected_rows;
       }
-      return self::$db->affected_rows;
     }
 
     return $result;
