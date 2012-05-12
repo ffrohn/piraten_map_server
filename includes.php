@@ -88,12 +88,6 @@ if ($_SESSION['siduser'] || $_SESSION['sidip']) {
        }
 }
 
-function mysql_escape($value) {
-	if (get_magic_quotes_gpc())
-		$value = stripslashes($value);
-	return mysql_real_escape_string($value);
-}
-
 function get_float($name) {
   return filter_input(INPUT_GET, $name, FILTER_VALIDATE_FLOAT);
 }
@@ -147,35 +141,17 @@ function map_del($id) {
 
 function map_change($id, $type, $comment, $city, $street, $imageurl) {
 	global $_SESSION, $options;
+	if (!isset($options[$type])) {
+          $type = null;
+	}
 	
-	$id = mysql_escape($id);
 	$query = "INSERT INTO ".System::getConfig('tbl_prefix')."felder (plakat_id, lon, lat, user, type, comment, city, street, image) "
-               . "SELECT plakat_id, lon, lat, '".$_SESSION['siduser']."' as user, ";
-	if(isset($options[$type])) {
-		$type = mysql_escape($type);
-		$query .= "'$type' as type, ";
-	} else $query .= "type, ";
-	if ($comment !== null) {
-		$comment = mysql_escape($comment);
-		$query .= "'$comment' as comment, ";
-	} else $query .= "comment, ";
-	if($city !== null) {	  
-		$city = mysql_escape($city);
-		$query .= "'$city' as city, ";
-	} else $query .= "city, ";
-	if($street !== null) {	  
-		$street = mysql_escape($street);
-		$query .= "'$street' as street, ";
-	} else $query .= "street, ";
-	if($imageurl !== null) {	  
-		$imageurl = mysql_escape($imageurl);
-		$query .= "'$imageurl' as image ";
-	} else $query .= "image ";
+               . "SELECT plakat_id, lon, lat, ?'".$_SESSION['siduser']."' as user, IFNULL(?, type) type, IFNULL(?, comment) comment, IFNULL(?, city) city, IFNULL(?, street) street, IFNULL(?, image) image "
+	       . "FROM ".System::getConfig('tbl_prefix')."felder f "
+               . "JOIN ".System::getConfig('tbl_prefix')."plakat p ON p.actual_id=f.id "
+               . "WHERE p.id ?";
 
-	$query .= " FROM ".System::getConfig('tbl_prefix')."felder WHERE id in (SELECT actual_id from ".System::getConfig('tbl_prefix')."plakat where id = $id)";
-
-	$res = System::query($query);
-	$newid = mysql_insert_id();
+	$newid = System::query($query, array($_SESSION['siduser'], $type, $comment, $city, $street, $imageurl, $id));
 
 	$res = System::query("INSERT INTO ".System::getConfig('tbl_prefix')."log (plakat_id, user, subject, what) VALUES(?, ?, 'change', ?)", array($id, $_SESSION['siduser'], 'Type: ' . $type));
 
@@ -183,5 +159,3 @@ function map_change($id, $type, $comment, $city, $street, $imageurl) {
 	
 	return;
 }
-
-?>

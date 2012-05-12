@@ -104,7 +104,7 @@ class Data_User extends Data_Abstract
   public static function login($username, $password)
   {
     if ($username == '' || $password == '') {
-      throw new Exception('Wrong password');
+      throw new UserException('Wrong password');
     }
     $result = System::query('SELECT * FROM ' . System::getConfig('tbl_prefix') . 'users WHERE username=? AND password=ENCRYPT(?, hash)', array($username, $password));
     if ($result->num_rows != 1) {
@@ -112,7 +112,7 @@ class Data_User extends Data_Abstract
     }
     $user = $result->fetch_object(__CLASS__);
     if (!$user->getActive()) {
-      throw new Exception('Account not yet activated');
+      throw new UserException('Account not yet activated');
     }
 
     return $user;
@@ -122,7 +122,7 @@ class Data_User extends Data_Abstract
   {
     $result = System::query('SELECT * FROM ' . System::getConfig('tbl_prefix') . 'users WHERE username=? AND password=MD5(?)', array($username, $password));
     if ($result->num_rows != 1) {
-      throw new Exception('Wrong password');
+      throw new UserException('Wrong password');
     }
     //Fix password
     $user = $result->fetch_object(__CLASS__);
@@ -130,7 +130,7 @@ class Data_User extends Data_Abstract
     $user->save();
 
     if (!$user->getActive()) {
-      throw new Exception('Account not yet activated');
+      throw new UserException('Account not yet activated');
     }
 
     return $user;
@@ -163,10 +163,10 @@ class Data_User extends Data_Abstract
       
       $setvals[] = $this->getId();
 
-      return System::query('UPDATE ' . System::getConfig('tbl_prefix') . 'users SET ' . implode(', ', $se) . ' WHERE id=?', $setvals);
+      return System::query('UPDATE ' . System::getConfig('tbl_prefix') . 'users SET ' . implode('=?, ', $setvars) . '=? WHERE id=?', $setvals);
     }
 
-    $this->setId(System::query('INSERT INTO ' . System::getConfig('tbl_prefix') . 'users (username, password, active, hash) VALUES (?, ?, ?, ?, ?)',
+    $this->setId(System::query('INSERT INTO ' . System::getConfig('tbl_prefix') . 'users (username, password, active, hash) VALUES (?, ?, ?, ?)',
                                array($this->getUsername(), $this->getPassword(), $this->getActive(), $this->getHash())));
 
     return $this;

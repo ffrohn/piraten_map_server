@@ -122,8 +122,8 @@ while ($row = $res->fetch_assoc()) {
 			'u'=>htmlspecialchars($row['user']),
 			'd'=>date('d.m.y H:i', strtotime($row['timestamp']))
 		))));
-	if (isset($options[$type]))
-		$place->appendChild($dom->createElement('styleUrl', '#'.$styles[$type]));
+	if (isset($options[$row['type']]))
+		$place->appendChild($dom->createElement('styleUrl', '#'.$styles[$row['type']]));
 	$place->appendChild($dom->createElement('Point'))->appendChild($dom->createElement('coordinates', "$lon,$lat"));
 }
 echo $dom->saveXML();	

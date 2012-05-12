@@ -17,7 +17,8 @@
        specific language governing permissions and limitations
        under the License.
 */
-
+require_once('library/System.php');
+System::init();
 
 require("includes.php");
 require("gps.php");

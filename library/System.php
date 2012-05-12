@@ -110,13 +110,18 @@ class System
     return self::$db;
   }
 
+  public static function getCurrentUser()
+  {
+    return unserialize($_SESSION['user']);
+  }
+
   private static function prepareQuery($query,array $data_arr)
   {
     preg_match_all("/[\?]/",$query,$matches,PREG_OFFSET_CAPTURE);
 
     if (sizeof($matches[0])!=sizeof($data_arr))
     {
-      throw new Exception('Query arguments missmatch');
+      throw new Exception('Query arguments missmatch: ' . $query . 'args:' . count(data_arr));
     }
 
     $offset=0;
