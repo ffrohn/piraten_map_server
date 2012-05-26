@@ -36,8 +36,8 @@
     if ($request->Adds_size() > 0) {
       $addedCount = 0;
       for ($i = 0; $i < $request->Adds_size(); $i++) {
-	$add = $request->Add($i);
-	$id = map_add($add->Lon(), $add->Lat(), $add->Type());
+        $add = $request->Add($i);
+        $id = map_add($add->Lon(), $add->Lat(), $add->Type());
 	
 	$comment = $add->Comment();
 	$image = $add->ImageUrl();

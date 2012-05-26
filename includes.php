@@ -139,23 +139,24 @@ function map_del($id) {
 	return;
 }
 
-function map_change($id, $type, $comment, $city, $street, $imageurl) {
-	global $_SESSION, $options;
-	if (!isset($options[$type])) {
-          $type = null;
-	}
-	
-	$query = "INSERT INTO ".System::getConfig('tbl_prefix')."felder (plakat_id, lon, lat, user, type, comment, city, street, image) "
-               . "SELECT plakat_id, lon, lat, ?'".$_SESSION['siduser']."' as user, IFNULL(?, type) type, IFNULL(?, comment) comment, IFNULL(?, city) city, IFNULL(?, street) street, IFNULL(?, image) image "
-	       . "FROM ".System::getConfig('tbl_prefix')."felder f "
-               . "JOIN ".System::getConfig('tbl_prefix')."plakat p ON p.actual_id=f.id "
-               . "WHERE p.id ?";
+function map_change($id, $type, $comment, $city, $street, $imageurl)
+{
+  global $_SESSION, $options;
+  if (!isset($options[$type])) {
+    $type = null;
+  }
 
-	$newid = System::query($query, array($_SESSION['siduser'], $type, $comment, $city, $street, $imageurl, $id));
+  $query = "INSERT INTO ".System::getConfig('tbl_prefix')."felder (plakat_id, lon, lat, user, type, comment, city, street, image) "
+    . "SELECT plakat_id, lon, lat, ? as user, IFNULL(?, type) type, IFNULL(?, comment) comment, IFNULL(?, city) city, IFNULL(?, street) street, IFNULL(?, image) image "
+    . "FROM ".System::getConfig('tbl_prefix')."felder f "
+    . "JOIN ".System::getConfig('tbl_prefix')."plakat p ON p.actual_id=f.id "
+    . "WHERE p.id=?";
 
-	$res = System::query("INSERT INTO ".System::getConfig('tbl_prefix')."log (plakat_id, user, subject, what) VALUES(?, ?, 'change', ?)", array($id, $_SESSION['siduser'], 'Type: ' . $type));
+  $newid = System::query($query, array($_SESSION['siduser'], $type, $comment, $city, $street, $imageurl, $id));
 
-	System::query("UPDATE ".System::getConfig('tbl_prefix')."plakat SET actual_id = ? where id = ?", array($newid, $id));
-	
-	return;
+  $res = System::query("INSERT INTO ".System::getConfig('tbl_prefix')."log (plakat_id, user, subject, what) VALUES(?, ?, 'change', ?)", array($id, $_SESSION['siduser'], 'Type: ' . $type));
+
+  System::query("UPDATE ".System::getConfig('tbl_prefix')."plakat SET actual_id = ? where id = ?", array($newid, $id));
+
+  return;
 }

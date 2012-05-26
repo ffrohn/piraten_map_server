@@ -1,6 +1,6 @@
 <?php
 /**
- * Singleton containing system whide important information.
+ * Singleton containing system wide important information.
  */
 class System
 {

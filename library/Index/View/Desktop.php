@@ -24,9 +24,10 @@
     <div class="container">
       <h3><a href="#">Plakat Karte</a></h3>
       <ul>
-        <li><a id="logoutBtn" href="#" onclick="auth.logout();">Abmelden</a></li>
-        <li><a id="loginBtn" href="#" onclick="showModalId('loginform');">Anmelden</a></li>
-        <li><a id="uploadBtn" href="#" onclick="showModalId('uploadimg');">Bild hochladen</a></li>
+        <li><a class="loginEnabled" href="#" onclick="auth.logout();">Abmelden</a></li>
+        <li><a class="logoutEnabled" href="#" onclick="showModalId('loginform');">Anmelden</a></li>
+        <li><a class="loginEnabled" href="#" onclick="showModalId('uploadimg');">Bild hochladen</a></li>
+        <li><a class="loginEnabled" href="#" onclick="showModalId('exportCity');">Export (beta!)</a></li>
         <li><a href="#" onclick="togglemapkey();">Legende / Hilfe</a></li>
       </ul>
     </div>
@@ -69,26 +70,56 @@
           </div>
         </div>
     <div class="modal" id="uploadimg">
-          <div class="modal-header">
-      <h3>Bild hochladen</h3>
-      <a href="#" class="close" onclick="javascript:closeModalDlg(false);">&times;</a>
+      <div class="modal-header">
+        <h3>Bild hochladen</h3>
+        <a href="#" class="close" onclick="javascript:closeModalDlg(false);">&times;</a>
+      </div>
+      <div class="modal-body">
+        <form enctype="multipart/form-data" method="post" id="formimgup" action="image.php">
+          <div class="clearfix">
+            <label for="image">Bild hochladen</label>
+            <div class="input">
+              <input type="file" id="image" name="image" class="xlarge">
+            </div>
           </div>
-          <div class="modal-body">
-      <form enctype="multipart/form-data" method="post" id="formimgup" action="image.php">
-        <div class="clearfix">
-          <label for="image">Bild hochladen</label>
-          <div class="input">
-            <input type="file" id="image" name="image" class="xlarge">
+          <input type="hidden" name="completed" value="1">
+        </form>
+      </div>
+      <div class="modal-footer">
+        <a href="#" class="btn primary" onclick="javascript:document.forms['formimgup'].submit();">Hochladen</a>
+        <a href="#" class="btn secondary" onclick="javascript:closeModalDlg(false);">Abbrechen</a>
+      </div>
+    </div>
+    <div class="modal" style="position: relative; top: auto; left: auto; margin: 0 auto; display:none;"
+       id="exportCity">
+      <div class="modal-header">
+        <h3>Plakate exportieren</h3>
+        <a href="#" class="close" onclick="javascript:closeModalDlg(false);">&times;</a>
+      </div>
+      <div class="modal-body">
+        <form enctype="multipart/form-data" method="get" id="formexpup" action="export.php">
+          <div class="clearfix">
+            <label for="image">Welche Stadt?</label>
+            <div class="input">
+              <select id="city" name="city">
+<?php
+$cities = System::query('SELECT DISTINCT city FROM ' . System::getConfig('tbl_prefix') . 'felder');
+if ($cities) {
+  while ($row = $cities->fetch_assoc())
+    print '<option>' . $row['city'] . '</option>';
+}
+?>
+            </div>
           </div>
-        </div>
-        <input type="hidden" name="completed" value="1">
-      </form>
-          </div>
-          <div class="modal-footer">
-      <a href="#" class="btn primary" onclick="javascript:document.forms['formimgup'].submit();">Hochladen</a>
-      <a href="#" class="btn secondary" onclick="javascript:closeModalDlg(false);">Abbrechen</a>
-          </div>
-        </div>
+          <input type="hidden" name="completed" value="1">
+        </form>
+      </div>
+      <div class="modal-footer">
+        <a href="#" class="btn primary" onclick="javascript:document.forms['formexpup'].submit();">Download</a>
+        <a href="#" class="btn secondary" onclick="javascript:closeModalDlg(false);">Abbrechen</a>
+      </div>
+    </div>
+  </div>
   </div>
     <div class="alert-message info" id="message" style="margin-top:43px">
     <a class="close" href="#" onclick="javascript:closeMsg();">&times;</a>

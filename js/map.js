@@ -206,20 +206,18 @@ var auth = {
 
   goToLoggedInState: function()
   {
-    init();
-    $('#logoutBtn').css({display: "block"});
-    $('#uploadBtn').css({display: "block"});
-    $('#loginBtn').css({display: "none"});
+    $('.loginEnabled').css({display: "block"});
+    $('.logoutEnabled').css({display: "none"});
     this.isLoggedIn = true;
+    gmlreload();
   },
 
   goToLoggedOutState: function()
   {
-    init();
-    $('#logoutBtn').css({display: "none"});
-    $('#uploadBtn').css({display: "none"});
-    $('#loginBtn').css({display: "block"});
+    $('.loginEnabled').css({display: "none"});
+    $('.logoutEnabled').css({display: "block"});
     this.isLoggedIn = false;
+    gmlreload();
   },
 
   login: function()
@@ -243,7 +241,7 @@ var auth = {
     $.ajax({
       type: "GET",
       url: "login.php",
-      data: "?action=logout",
+      data: "action=logout",
       dataType: 'json',
       success: function(data) {
         message.display(data.message);
@@ -256,6 +254,7 @@ var auth = {
   }
 }
 $(document).ready(function(e) {
+  init();
   if (isLoggedIn)
     auth.goToLoggedInState();
   else

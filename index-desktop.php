@@ -308,7 +308,7 @@ else
         <form id="formLogout" action="<?php echo System::getConfig('url');?>login.php?action=logout" method="post"></form>
     <li><a href="#" onclick="document.forms['formLogout'].submit()">Abmelden</a></li>
     <li><a href="#" onclick="showModalId('uploadimg');">Bild hochladen</a></li>
-    <li><a href="#" onclick="showModalId('exportCity');">Export</a></li>
+    <li><a href="#" onclick="showModalId('exportCity');">Export (beta!)</a></li>
     <?php } else { ?>
       <li><a href="#" onclick="showModalId('loginform');">Anmelden</a></li>    
     <?php } ?>
@@ -345,7 +345,7 @@ else
         <div class="clearfix">
           <label for="mail">Mail</label>
           <div class="input">
-            <input type="text" size="30" class="xlarge" name="mail" id="mail" value="Piraten-Adresse zur Registrierung eingeben"/>
+            <input type="text" size="30" class="xlarge" name="mail" id="mail" value="Piraten-Email nur bei Registrierung eingeben"/>
           </div>
         </div>
       </form>
@@ -458,7 +458,7 @@ if ($cities) {
   <div style="position:absolute; top:<?php echo $mapmargintop?>px; bottom:0px; left:0px; right:<?php echo $mapmarginright?>px;" id="map" ></div>
   <div id="mapkey">
   
-    <div class="modal" style="position: relative; top: auto; left: auto; margin: 0 auto; width: 256px;">
+    <div class="modal" style="position: relative; top: auto; left: auto; margin: 0 auto; width: 420px;">
           <div class="modal-header">
             <h3>Legende</h3>
       <a href="#" onclick="javascript:togglemapkey();" class="close">&times;</a>
@@ -466,10 +466,10 @@ if ($cities) {
           <div class="modal-body">
       <ul class="unstyled">
         <?php if ($loginok==0) { ?>
+        <li><b>Du bist noch nicht angemeldet</b></li>
         <li>Anmelden: Zum Anmelden muss eine Email-Adresse mit "...@piraten..." angegeben werden. Dahin kommen dann die Login-Daten.</li>
         <li>Plakate werden erst nach dem Login editierbar.</li>
-        <li>Du bist noch nicht angemeldet</li>
-        <li>Bei Fragen bitte auf https://wiki.piratenpartei.de/Plakatkarte_NRW schauen. Notfalls Mail an pk@piraten-aachen.de.</li>
+        <li>Bei Fragen bitte auf https://wiki.piratenpartei.de/Plakatkarte_NRW schauen.<br />Notfalls Mail an pk@piraten-aachen.de.</li>
         <? } else {  ?>
         <li>STRG+Mausklick: neuer Marker</li>
         <?php } ?>

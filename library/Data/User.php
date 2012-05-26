@@ -138,12 +138,12 @@ class Data_User extends Data_Abstract
 
   public static function activate($username, $hash)
   {
-    $res = System::query("SELECT id FROM ".System::getConfig('tbl_prefix')."users WHERE username=? AND hash=?", array($username, $hash));
+    $res = System::query("SELECT * FROM ".System::getConfig('tbl_prefix')."users WHERE username=? AND hash=?", array($username, $hash));
     if ($res->num_rows != 1) {
       return false;
     }
 
-    $user = $result->fetch_object(__CLASS__);
+    $user = $res->fetch_object(__CLASS__);
     $user->setActive(true);
     return $user->save();
   }
