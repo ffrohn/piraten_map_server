@@ -334,7 +334,6 @@ else
             <input type="text" size="30" class="xlarge" name="username" id="username" />
           </div>
         </div>
-
         <div class="clearfix">
           <label for="password">Passwort</label>
           <div class="input">
